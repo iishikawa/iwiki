@@ -1,0 +1,3 @@
+/index.txt
+
+This is /index.txt.

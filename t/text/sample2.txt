@@ -1,0 +1,5 @@
+title
+ex:prop1 "string"
+ex:prop2 <http://example.org/>
+
+body

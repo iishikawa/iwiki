@@ -1,0 +1,3 @@
+/a/.b.txt
+
+This is /a/.b.txt.

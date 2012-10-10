@@ -1,0 +1,8 @@
+*.o
+.*.swp
+\#*\#
+*~
+TAGS
+tags
+perllocal.pod
+.htaccess
