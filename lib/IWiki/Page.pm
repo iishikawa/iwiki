@@ -406,7 +406,8 @@ sub to_xmldoc {
 
         my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
         $res->appendChild($modified);
-        my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+        # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+        my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
         my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
         $modified->appendTextNode($modified_text);
 
