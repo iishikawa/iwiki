@@ -7,7 +7,7 @@ use utf8;
 use Test::More;
 
 use File::Spec::Functions qw/catfile canonpath/;
-use IWiki::Page;
+use IWiki::PageNobody;
 
 
 BEGIN {
@@ -30,10 +30,10 @@ sub canonicalize_xml {
     return $doc->documentElement->toString(1);
 }
 
-# IWiki::Page->new
+# IWiki::PageNobody->new
 {
     my $title = "new() given no parameters";
-    my $page     = IWiki::Page->new(text_dir => $text_dir);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir);
     is($page->text_path, catfile($text_dir, "index.txt"), $title);
     is($page->path_info, "/", $title);
     is($page->dirname, "/", $title);
@@ -43,7 +43,7 @@ sub canonicalize_xml {
 
 {
     my $title = "new() given path_info";
-    my $page     = IWiki::Page->new(text_dir => $text_dir, path_info => '/index');
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, path_info => '/index');
     is($page->text_path, catfile($text_dir, "index.txt"), $title);
     is($page->path_info, "/index", $title);
     is($page->dirname, "/", $title);
@@ -53,7 +53,7 @@ sub canonicalize_xml {
 
 {
     my $title = "new() given path_info and extension (which is ignored)";
-    my $page     = IWiki::Page->new(text_dir => $text_dir, path_info => '/index', extension => '.xml');
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, path_info => '/index', extension => '.xml');
     is($page->text_path, catfile($text_dir, "index.txt"), $title);
     is($page->path_info, "/index", $title);
     is($page->dirname, "/", $title);
@@ -64,7 +64,7 @@ sub canonicalize_xml {
 {
     my $title = "new() given text_path";
     my $text_path = catfile($text_dir, "index.txt");
-    my $page     = IWiki::Page->new(text_dir => $text_dir, text_path => $text_path);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path);
     is($page->text_path, $text_path, $title);
     is($page->path_info, "/index.html", $title);
     is($page->dirname, "/", $title);
@@ -75,7 +75,7 @@ sub canonicalize_xml {
 {
     my $title = "new() given text_path and extension";
     my $text_path = catfile($text_dir, "index.txt");
-    my $page     = IWiki::Page->new(text_dir => $text_dir, text_path => $text_path, extension => '.xml');
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, extension => '.xml');
     is($page->text_path, $text_path, $title);
     is($page->path_info, "/index.xml", $title);
     is($page->dirname, "/", $title);
@@ -86,7 +86,7 @@ sub canonicalize_xml {
 # $page->text_path()
 {
     my $title = "set text_path with text_path()";
-    my $page     = IWiki::Page->new(text_dir => $text_dir);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir);
     $page->text_path("$text_dir/a.txt");
     is($page->text_path, canonpath("$text_dir/a.txt"), $title);
     is($page->path_info, "/a.html", $title);
@@ -117,7 +117,7 @@ sub canonicalize_xml {
 # $page->path_info(), $page->_pathinfo_to_textpath()
 {
     my $title = "set path_info with path_info()";
-    my $page = IWiki::Page->new(text_dir => $text_dir);
+    my $page = IWiki::PageNobody->new(text_dir => $text_dir);
     $page->path_info("/");
     is($page->text_path, catfile($text_dir, "index.txt"), $title);
     is($page->path_info, "/", $title);
@@ -178,7 +178,7 @@ sub canonicalize_xml {
 # $page->exists(), ->is_readable(), ->is_safe(), ->in_safe_directory(),
 # ->has_directory(), ->is_ok(), ->is_forbidden()
 {
-    my $page = IWiki::Page->new(text_dir => $text_dir);
+    my $page = IWiki::PageNobody->new(text_dir => $text_dir);
     $page->path_info("/");
     ok($page->exists, "index.txt exists");
     ok($page->is_readable, "index.txt is readable");
@@ -302,7 +302,8 @@ use Time::Local qw/timelocal/;
     utime $time, $time, $text_path;
     my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
     my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
-    my $page     = IWiki::Page->new(text_dir => $text_dir, text_path => $text_path);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path);
+
 
     is($page->to_xmldoc->documentElement->toString(1),
         canonicalize_xml(<<EOD));
@@ -310,9 +311,6 @@ use Time::Local qw/timelocal/;
   <rdf:Description rdf:about="/sample.html">
     <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
-    <h:body xmlns:h="http://www.w3.org/1999/xhtml" rdf:parseType="Literal">
-      <p xmlns="http://www.w3.org/1999/xhtml">body</p>
-    </h:body>
   </rdf:Description>
 </rdf:RDF>
 EOD
@@ -325,7 +323,7 @@ EOD
     utime $time, $time, $text_path;
     my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
     my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
-    my $page     = IWiki::Page->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
 
     is($page->to_xmldoc->documentElement->toString(1),
         canonicalize_xml(<<EOD));
@@ -335,9 +333,6 @@ EOD
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
     <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
     <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
-    <h:body xmlns:h="http://www.w3.org/1999/xhtml" rdf:parseType="Literal">
-      <p xmlns="http://www.w3.org/1999/xhtml">body</p>
-    </h:body>
   </rdf:Description>
 </rdf:RDF>
 EOD

@@ -21,6 +21,7 @@ use DBI;
 use XML::LibXSLT;
 use IWiki::Util           qw/htmlout html_escape canonicalize_header/;
 use IWiki::Page;
+use IWiki::PageNobody;
 
 
 my $debug        = 0;
@@ -668,6 +669,29 @@ sub get_all_pages {
     my @pages;
     for my $text_path ($self->_get_all_texts($dirname, $excludes)) {
         my $page = IWiki::Page->new(
+            text_dir          => $self->{text_dir},
+            valid_extensions  => $self->{valid_extensions},
+            default_extension => $self->{default_extension},
+            user_ns           => $self->{user_ns},
+            cache_dir         => $self->{cache_dir},
+            use_cache         => $self->{use_cache},
+            text_path         => $text_path
+        );
+        if ($page->is_ok and $self->_get_template_rule($page)) {
+            push @pages, $page;
+        }
+    }
+    @pages;
+}
+
+# $self->get_all_pages_nobody([$dirname [, $excludes]])
+sub get_all_pages_nobody {
+    my $self = shift;
+    my $dirname = shift;
+    my $excludes = shift;
+    my @pages;
+    for my $text_path ($self->_get_all_texts($dirname, $excludes)) {
+        my $page = IWiki::PageNobody->new(
             text_dir          => $self->{text_dir},
             valid_extensions  => $self->{valid_extensions},
             default_extension => $self->{default_extension},
