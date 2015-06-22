@@ -62,13 +62,6 @@ sub to_xmldoc {
     chomp $title_text;
     $title->appendTextNode($title_text);
 
-    my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
-    $res->appendChild($modified);
-    # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
-    my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
-    my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
-    $modified->appendTextNode($modified_text);
-
     while (my $line = <$fh>) {
         last if $line =~ /^\s*$/;
         chomp $line;
@@ -92,7 +85,33 @@ sub to_xmldoc {
                 $elm->appendTextNode($literal);
             }
             $res->appendChild($elm);
+
+            eval {
+                if ($self->{user_ns}{$prefix} eq $ns{dcterms} and $localpart eq "modified") {
+                    $self->{mtime} = DateTime::Format::HTTP->parse_datetime($literal)->epoch;
+                }
+                elsif($self->{user_ns}{$prefix} eq $ns{dcterms} and $localpart eq "created") {
+                    $self->{ctime} = DateTime::Format::HTTP->parse_datetime($literal)->epoch;
+                }
+            };
         }
+    }
+
+    if (not $res->getElementsByTagNameNS($ns{dcterms}, 'modified')) {
+        my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
+        $res->appendChild($modified);
+        # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+        my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
+        my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+        $modified->appendTextNode($modified_text);
+    }
+    if (not $res->getElementsByTagNameNS($ns{dcterms}, 'created')) {
+        my $created = $doc->createElementNS($ns{dcterms}, 'dcterms:created');
+        $res->appendChild($created);
+        # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+        my $dt = DateTime->from_epoch(epoch => $self->{ctime}, time_zone => 'floating');
+        my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+        $created->appendTextNode($created_text);
     }
 
     close $fh;

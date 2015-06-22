@@ -311,6 +311,7 @@ use Time::Local qw/timelocal/;
   <rdf:Description rdf:about="/sample.html">
     <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:created>
   </rdf:Description>
 </rdf:RDF>
 EOD
@@ -330,9 +331,34 @@ EOD
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
   <rdf:Description rdf:about="/sample2.html">
     <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
+    <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
+    <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
+    <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:created>
+  </rdf:Description>
+</rdf:RDF>
+EOD
+
+}
+
+{
+    my $text_path = catfile($text_dir, "sample3.txt");
+    my $time = timelocal(0, 0, 0, 1, 1 - 1, 2010);
+    utime $time, $time, $text_path;
+    my $modified_text = "2015-06-22T12:00:00+09:00";
+    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
+    my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
+
+    is($page->to_xmldoc->documentElement->toString(1),
+        canonicalize_xml(<<EOD));
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="/sample3.html">
+    <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
     <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
     <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${created_text}</dcterms:created>
   </rdf:Description>
 </rdf:RDF>
 EOD

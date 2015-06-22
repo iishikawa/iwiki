@@ -14,6 +14,7 @@ use File::Spec::Functions qw/catfile canonpath splitpath splitdir/;
 use File::Basename        qw/fileparse/;
 use DateTime;
 use DateTime::Format::W3CDTF;
+use DateTime::Format::HTTP;
 use DBI;
 use XML::LibXML;
 use IWiki;
@@ -48,6 +49,7 @@ sub new {
         text_dir  => canonpath($text_dir),
         fileenc   => $fileenc,
         mtime     => undef,
+        ctime     => undef,
         xmldoc    => undef,
         user_ns   => {},
         valid_extensions  => \@valid_extensions,
@@ -85,6 +87,7 @@ SELECT count(*) FROM sqlite_master
 CREATE TABLE pagexml (
   text_path,
   mtime,
+  ctime,
   xmldoc_text,
   last_cached,
   PRIMARY KEY(text_path)
@@ -108,7 +111,7 @@ sub _get_pagexml_from_db {
         unless $self->{use_cache};
     my $pagexml;
     my $sth = $self->{dbh}->prepare(qq{
-SELECT mtime, xmldoc_text, last_cached
+SELECT mtime, ctime, xmldoc_text, last_cached
 FROM pagexml
 WHERE text_path = ?;
         });
@@ -116,8 +119,9 @@ WHERE text_path = ?;
     if (my @pd = $sth->fetchrow_array) {
         $pagexml = {
             mtime       => $pd[0],
-            xmldoc_text => $pd[1],
-            last_cached => $pd[2],
+            ctime       => $pd[1],
+            xmldoc_text => $pd[2],
+            last_cached => $pd[3],
         };
     }
     $sth->finish;
@@ -140,12 +144,13 @@ WHERE text_path = ?;
     if ($count == 0) {
         my $sth = $self->{dbh}->prepare(qq{
 INSERT INTO pagexml VALUES(
-  ?, ?, ?, ?
+  ?, ?, ?, ?, ?
 );
         });
         $sth->execute(
             $text_path,
-            $pagexml->{mtime}, $pagexml->{xmldoc_text},
+            $pagexml->{mtime}, $pagexml->{ctime},
+            $pagexml->{xmldoc_text},
             time
         );
         $sth->finish;
@@ -154,12 +159,13 @@ INSERT INTO pagexml VALUES(
         my $sth = $self->{dbh}->prepare(qq{
 UPDATE pagexml
 SET mtime = ?,
+    ctime = ?,
     xmldoc_text = ?,
     last_cached = ?
 WHERE text_path = ?;
         });
         $sth->execute(
-            $pagexml->{mtime}, $pagexml->{xmldoc_text}, time, $text_path
+            $pagexml->{mtime}, $pagexml->{ctime}, $pagexml->{xmldoc_text}, time, $text_path
         );
         $sth->finish;
     }
@@ -242,6 +248,7 @@ sub text_path {
 sub _set_mtime {
     my $self = shift;
     $self->{mtime} = $self->is_readable ? (stat $self->text_path)->mtime : undef;
+    $self->{ctime} = $self->{mtime};
 }
 
 # $self->dirname(): accessor, read-only
@@ -268,6 +275,11 @@ sub mtime {
     $self->{mtime};
 }
 
+# $self->ctime(): accessor, read-only
+sub ctime {
+    my $self = shift;
+    $self->{ctime};
+}
 # $self->exists(): true if the text file exists.
 sub exists {
     my $self = shift;
@@ -404,13 +416,6 @@ sub to_xmldoc {
         chomp $title_text;
         $title->appendTextNode($title_text);
 
-        my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
-        $res->appendChild($modified);
-        # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
-        my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
-        my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
-        $modified->appendTextNode($modified_text);
-
         while (my $line = <$fh>) {
             last if $line =~ /^\s*$/;
             chomp $line;
@@ -434,7 +439,34 @@ sub to_xmldoc {
                     $elm->appendTextNode($literal);
                 }
                 $res->appendChild($elm);
+
+                eval {
+                    if ($self->{user_ns}{$prefix} eq $ns{dcterms} and $localpart eq "modified") {
+                        $self->{mtime} = DateTime::Format::HTTP->parse_datetime($literal)->epoch;
+                    }
+                    elsif($self->{user_ns}{$prefix} eq $ns{dcterms} and $localpart eq "created") {
+                        $self->{ctime} = DateTime::Format::HTTP->parse_datetime($literal)->epoch;
+                    }
+                };
+
             }
+        }
+
+        if (not $res->getElementsByTagNameNS($ns{dcterms}, 'modified')) {
+            my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
+            $res->appendChild($modified);
+            # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+            my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
+            my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+            $modified->appendTextNode($modified_text);
+        }
+        if (not $res->getElementsByTagNameNS($ns{dcterms}, 'created')) {
+            my $created = $doc->createElementNS($ns{dcterms}, 'dcterms:created');
+            $res->appendChild($created);
+            # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+            my $dt = DateTime->from_epoch(epoch => $self->{ctime}, time_zone => 'floating');
+            my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+            $created->appendTextNode($created_text);
         }
 
         my $content = $doc->createElementNS($ns{h}, 'h:body');
@@ -454,6 +486,7 @@ sub to_xmldoc {
         $pagexml = {
             xmldoc_text => $doc->toString(),
             mtime  => $self->{mtime},
+            ctime => $self->{ctime},
         };
         $self->_set_pagexml_into_db($pagexml);
     }
@@ -462,4 +495,5 @@ sub to_xmldoc {
 }
 
 1;
+
 
