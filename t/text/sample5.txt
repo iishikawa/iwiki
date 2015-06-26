@@ -1,5 +1,4 @@
 title
-dcterms:modified "2015-06-22T12:00:00+09:00"
 dcterms:created "2010-01-01T00:00:00+09:00"
 ex:prop1 "string"
 ex:prop2 <http://example.org/>

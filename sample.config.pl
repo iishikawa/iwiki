@@ -4,6 +4,8 @@
 use utf8;
 use XML::LibXSLT;
 
+$ENV{TZ} or $ENV{TZ} = "Asia/Tokyo";
+
 # show debugging messages on error
 #$main::options{debug}         = 1;
 

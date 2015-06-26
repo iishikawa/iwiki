@@ -300,9 +300,10 @@ use Time::Local qw/timelocal/;
     my $text_path = catfile($text_dir, "sample.txt");
     my $time = timelocal(0, 0, 0, 1, 1 - 1, 2010);
     utime $time, $time, $text_path;
-    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
+    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'local');
     my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
     my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path);
+    my $created_text = $modified_text;
 
 
     is($page->to_xmldoc->documentElement->toString(1),
@@ -311,7 +312,7 @@ use Time::Local qw/timelocal/;
   <rdf:Description rdf:about="/sample.html">
     <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
-    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:created>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${created_text}</dcterms:created>
   </rdf:Description>
 </rdf:RDF>
 EOD
@@ -322,9 +323,10 @@ EOD
     my $text_path = catfile($text_dir, "sample2.txt");
     my $time = timelocal(0, 0, 0, 1, 1 - 1, 2010);
     utime $time, $time, $text_path;
-    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
+    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'local');
     my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
     my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
+    my $created_text = $modified_text;
 
     is($page->to_xmldoc->documentElement->toString(1),
         canonicalize_xml(<<EOD));
@@ -334,7 +336,7 @@ EOD
     <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
     <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
-    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:created>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${created_text}</dcterms:created>
   </rdf:Description>
 </rdf:RDF>
 EOD
@@ -343,17 +345,38 @@ EOD
 
 {
     my $text_path = catfile($text_dir, "sample3.txt");
-    my $time = timelocal(0, 0, 0, 1, 1 - 1, 2010);
-    utime $time, $time, $text_path;
     my $modified_text = "2015-06-22T12:00:00+09:00";
-    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'floating');
-    my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+    my $created_text = "2010-01-01T00:00:00+09:00";
     my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
 
     is($page->to_xmldoc->documentElement->toString(1),
         canonicalize_xml(<<EOD));
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
   <rdf:Description rdf:about="/sample3.html">
+    <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
+    <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${created_text}</dcterms:created>
+    <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
+    <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
+  </rdf:Description>
+</rdf:RDF>
+EOD
+
+}
+
+{
+    my $text_path = catfile($text_dir, "sample4.txt");
+    my $modified_text = "2015-06-22T12:00:00+09:00";
+    my $time = timelocal(0, 0, 0, 1, 1 - 1, 2015);
+    utime $time, $time, $text_path;
+    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'local');
+    my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
+
+    is($page->to_xmldoc->documentElement->toString(1),
+        canonicalize_xml(<<EOD));
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="/sample4.html">
     <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
     <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
     <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
@@ -365,4 +388,27 @@ EOD
 
 }
 
+{
+    my $text_path = catfile($text_dir, "sample5.txt");
+    my $time = timelocal(0, 0, 0, 1, 1 - 1, 2015);
+    utime $time, $time, $text_path;
+    my $dt = DateTime->from_epoch(epoch => $time, time_zone => 'local');
+    my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
+    my $created_text = "2010-01-01T00:00:00+09:00";
+    my $page     = IWiki::PageNobody->new(text_dir => $text_dir, text_path => $text_path, user_ns => $user_ns);
+
+    is($page->to_xmldoc->documentElement->toString(1),
+        canonicalize_xml(<<EOD));
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="/sample5.html">
+    <dcterms:title xmlns:dcterms="http://purl.org/dc/terms/">title</dcterms:title>
+    <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">${created_text}</dcterms:created>
+    <ex:prop1 xmlns:ex="http://example.org/ns#">string</ex:prop1>
+    <ex:prop2 xmlns:ex="http://example.org/ns#" rdf:resource="http://example.org/"/>
+    <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/">${modified_text}</dcterms:modified>
+  </rdf:Description>
+</rdf:RDF>
+EOD
+
+}
 done_testing;

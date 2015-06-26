@@ -21,6 +21,8 @@ use IWiki;
 use IWiki::Parser;
 use IWiki::Parser::BasicTagSet;
 
+# BEGIN { $ENV{TZ} or $ENV{TZ} = "Asia/Tokyo"; }
+
 
 my $text_dir          = catfile($FindBin::Bin, 'text');
 my @valid_extensions  = qw/.html/;
@@ -455,16 +457,16 @@ sub to_xmldoc {
         if (not $res->getElementsByTagNameNS($ns{dcterms}, 'modified')) {
             my $modified = $doc->createElementNS($ns{dcterms}, 'dcterms:modified');
             $res->appendChild($modified);
-            # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
-            my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
+            my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
+            # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'floating');
             my $modified_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
             $modified->appendTextNode($modified_text);
         }
         if (not $res->getElementsByTagNameNS($ns{dcterms}, 'created')) {
             my $created = $doc->createElementNS($ns{dcterms}, 'dcterms:created');
             $res->appendChild($created);
-            # my $dt = DateTime->from_epoch(epoch => $self->{mtime}, time_zone => 'local');
-            my $dt = DateTime->from_epoch(epoch => $self->{ctime}, time_zone => 'floating');
+            my $dt = DateTime->from_epoch(epoch => $self->{ctime}, time_zone => 'local');
+            # my $dt = DateTime->from_epoch(epoch => $self->{ctime}, time_zone => 'floating');
             my $created_text = DateTime::Format::W3CDTF->new->format_datetime($dt);
             $created->appendTextNode($created_text);
         }
